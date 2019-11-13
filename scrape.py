@@ -8,12 +8,12 @@ from bs4 import BeautifulSoup
 from mailsender import SendEmail
 
 SUBJECT = "Movie tickets are open"
-BODY = "BMS bookings for theater: {} is open for your movie on BookMyShow @ {}."
+BODY = "BMS bookings for theater: \"{}\" is open for your movie on BookMyShow @ {}."
 
 EMAIL_ADDRESS = os.environ.get("EMAIL_USER")
 EMAIL_PASSWORD = os.environ.get("EMAIL_PASS")
 
-def search_venue(link, venue, to_address):
+def search_venue(link, venues, to_address):
 	if not to_address:
 		to_address = EMAIL_ADDRESS
 	source = requests.get(link).text
@@ -28,10 +28,16 @@ def search_venue(link, venue, to_address):
 		except:
 			pass
 
+	venues = [venue.lower() for venue in venues]
+	found_venues = []
+
 	for bms_venue in soup.find_all('a', class_="__venue-name"):
-		if venue.strip().lower() in bms_venue.text.strip().lower():
+		for venue in venues:
+			if venue.strip().lower() in bms_venue.text.strip().lower():
+				found_venues.append(venue)
+		if found_venues:
 			se = SendEmail(subject=SUBJECT,
-						   body=BODY.format(venue, link),
+						   body=BODY.format(", ".join(found_venues), link),
 						   from_address=EMAIL_ADDRESS,
 						   password=EMAIL_PASSWORD,
 						   to_address=to_address)
@@ -43,10 +49,10 @@ if __name__ == "__main__":
 	parser = ArgumentParser()
 	parser.add_argument("-l", "--bms_link", required=True,
 						help="Enter the bookmyshow movie booking page link")
-	parser.add_argument("-v", "--venue", required=True,
-						help="Enter the theater name")
+	parser.add_argument("-v", "--venues", nargs='+',
+						help="Enter the space separated theaters name")
 	parser.add_argument("-t", "--to", nargs='*', help="Enter the theater name")
 	args = parser.parse_args()
-	search_venue(args.bms_link, args.venue, args.to)
+	search_venue(args.bms_link, args.venues, args.to)
 
 # python scrape.py -v "AMB Cinemas" -l "https://in.bookmyshow.com/buytickets/doctor-sleep-hyderabad/movie-hyd-ET00104940-MT/20191114"
