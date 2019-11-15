@@ -4,6 +4,8 @@ import requests
 
 from argparse import ArgumentParser
 from bs4 import BeautifulSoup
+from datetime import datetime
+from time import sleep
 
 from mailsender import SendEmail
 
@@ -22,7 +24,8 @@ def search_venue(link, venues, to_address):
 		try:
 			if m['property'] == 'al:android:url':
 				if m['content'].rsplit("/", 1)[1] != link.rsplit("/", 1)[1]:
-					return
+					print("The url is mapped to past date")
+					return True
 				else:
 					break
 		except:
@@ -43,6 +46,8 @@ def search_venue(link, venues, to_address):
 					   to_address=to_address)
 		se.send_email()
 		print("Email sent successfully to {}".format(to_address))
+		return True
+	print("Checked at {}".format(datetime.now()))
 
 
 if __name__ == "__main__":
@@ -52,7 +57,12 @@ if __name__ == "__main__":
 	parser.add_argument("-v", "--venues", nargs='+',
 						help="Enter the space separated theaters name")
 	parser.add_argument("-t", "--to", nargs='*', help="Enter the theater name")
+	parser.add_argument("-f", "--frequency", default=900, type=int,
+						help="Enter the frequency to query the url in seconds")
 	args = parser.parse_args()
-	search_venue(args.bms_link, args.venues, args.to)
+	while True:
+		if search_venue(args.bms_link, args.venues, args.to):
+			break
+		sleep(args.frequency)
 
 # python scrape.py -v "AMB Cinemas" "preston prime" "inorbit" -l "https://in.bookmyshow.com/buytickets/khaidi-hyderabad/movie-hyd-ET00114552-MT/20191114"
